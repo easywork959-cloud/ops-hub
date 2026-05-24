@@ -657,11 +657,11 @@
     // ▼▼▼ REPLACE WITH YOUR FIREBASE CONFIG ▼▼▼
     const firebaseConfig = {
       apiKey: "AIzaSyCaVgxajtIEHmviyysaxmfYHEUr1O7LEJY",
-      authDomain: "ops-hub-f3cb0.firebaseapp.com",
-      projectId: "ops-hub-f3cb0",
-      storageBucket: "ops-hub-f3cb0.firebasestorage.app",
-      messagingSenderId: "395814140562",
-      appId: "1:395814140562:web:4ecf88d3991496b2d1844b",
+  authDomain: "ops-hub-f3cb0.firebaseapp.com",
+  projectId: "ops-hub-f3cb0",
+  storageBucket: "ops-hub-f3cb0.firebasestorage.app",
+  messagingSenderId: "395814140562",
+  appId: "1:395814140562:web:4ecf88d3991496b2d1844b",
     };
     // ▲▲▲ REPLACE WITH YOUR FIREBASE CONFIG ▲▲▲
 
@@ -784,6 +784,14 @@
       renderAuthArea();
       toggleAdminUI();
       manageUsersListener();
+
+      // Start/stop Firestore listeners based on auth state
+      if (state.user) {
+        startDataListeners();
+      } else {
+        stopDataListeners();
+        els.loading.classList.add('hidden');
+      }
     });
 
     function renderAuthArea() {
@@ -903,31 +911,49 @@
 
     /* -------------------------------------------------------------
        7.  FIRESTORE LIVE LISTENERS — categories + links
+            (started AFTER the user signs in — Firestore rules require auth)
        ------------------------------------------------------------- */
-    onSnapshot(
-      query(collection(db, 'categories'), orderBy('order', 'asc')),
-      (snap) => {
-        state.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        render();
-        renderCategorySelect();
-        renderAdminCategoryList();
-      },
-      (err) => console.error('categories listener', err)
-    );
+    let unsubscribeCategories = null;
+    let unsubscribeLinks      = null;
 
-    onSnapshot(
-      query(collection(db, 'links'), orderBy('createdAt', 'desc')),
-      (snap) => {
-        state.links = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        els.loading.classList.add('hidden');
-        render();
-        renderAdminLinkList();
-      },
-      (err) => {
-        console.error('links listener', err);
-        els.loading.classList.add('hidden');
-      }
-    );
+    function startDataListeners() {
+      if (unsubscribeCategories) return;  // already started — skip
+
+      unsubscribeCategories = onSnapshot(
+        query(collection(db, 'categories'), orderBy('order', 'asc')),
+        (snap) => {
+          state.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          console.log('[OPS Hub] categories loaded:', state.categories.length);
+          render();
+          renderCategorySelect();
+          renderAdminCategoryList();
+        },
+        (err) => console.error('categories listener', err)
+      );
+
+      unsubscribeLinks = onSnapshot(
+        query(collection(db, 'links'), orderBy('createdAt', 'desc')),
+        (snap) => {
+          state.links = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          console.log('[OPS Hub] links loaded:', state.links.length);
+          els.loading.classList.add('hidden');
+          render();
+          renderAdminLinkList();
+        },
+        (err) => {
+          console.error('links listener', err);
+          els.loading.classList.add('hidden');
+        }
+      );
+    }
+
+    function stopDataListeners() {
+      if (unsubscribeCategories) { unsubscribeCategories(); unsubscribeCategories = null; }
+      if (unsubscribeLinks)      { unsubscribeLinks();      unsubscribeLinks = null; }
+      state.categories = [];
+      state.links = [];
+      render();
+    }
 
     /* -------------------------------------------------------------
        8.  RENDER (filters + cards)
