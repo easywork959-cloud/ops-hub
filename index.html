@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6C5CE7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>OPS Hub — Find your team resources easily</title>
+
+  <!-- ============================================================
+       FONTS  — Plus Jakarta Sans (modern, friendly, Ziro-style)
+       ============================================================ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <!-- ============================================================
+       TAILWIND  — via CDN (free, no build step)
+       ============================================================ -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            // Ziro-inspired palette
+            brand:      '#6C5CE7',   // primary purple
+            'brand-dk': '#5849D4',   // hover / pressed
+            'brand-lt': '#EFEDFB',   // subtle backgrounds
+            'brand-50': '#F7F5FE',   // page background tint
+            accent:     '#FF7A59',   // warm orange (badges, highlights)
+            'accent-lt':'#FFE8E0',
+            success:    '#22C55E',
+            warn:       '#F59E0B',
+            danger:     '#EF4444',
+            ink:        '#0F1226',   // near-black, slightly violet
+            slate:      '#5B6173',
+            mute:       '#9097A8',
+            line:       '#ECEAF6',
+          },
+          boxShadow: {
+            'soft':  '0 2px 6px rgba(108,92,231,0.06), 0 8px 24px rgba(15,18,38,0.04)',
+            'pop':   '0 12px 36px rgba(108,92,231,0.18)',
+            'card':  '0 1px 3px rgba(15,18,38,0.04), 0 6px 20px rgba(15,18,38,0.05)',
+          },
+          borderRadius: {
+            'xl2': '1.25rem',  // 20px
+            '3xl': '1.75rem',  // 28px
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- ============================================================
+       CUSTOM STYLES — small details Tailwind cannot do alone
+       ============================================================ -->
+  <style>
+    html, body {
+      background: #FAFAFE;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* Decorative soft blobs in hero — Ziro-style atmosphere */
+    .blob {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(60px);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 { width: 320px; height: 320px; background: #D9D4FB; top: -80px; right: -60px; }
+    .blob-2 { width: 280px; height: 280px; background: #FFE2D6; top: 40px; right: 180px; opacity: 0.7; }
+    .blob-3 { width: 220px; height: 220px; background: #E8F4FF; top: 240px; right: -40px; }
+
+    .hero-illustration {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* iOS safe-area */
+    .safe-pt { padding-top: max(env(safe-area-inset-top), 0px); }
+    .safe-pb { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+
+    /* Stagger reveal */
+    .reveal { opacity: 0; animation: fadeUp 0.5s ease-out forwards; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #E0DDF2; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #C9C5E8; }
+
+    /* Focus rings */
+    :focus-visible {
+      outline: 2px solid #6C5CE7;
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
+    /* Card hover */
+    .card { transition: transform 220ms cubic-bezier(.2,.7,.2,1), box-shadow 220ms, border-color 220ms; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(15,18,38,0.08); border-color: #D9D4FB; }
+
+    /* Filter chips */
+    .chip {
+      transition: all 180ms;
+    }
+    .chip.active {
+      background: #6C5CE7;
+      color: white;
+      border-color: #6C5CE7;
+      box-shadow: 0 6px 16px rgba(108,92,231,0.25);
+    }
+
+    /* Drawer animation */
+    .drawer { transition: transform 280ms cubic-bezier(.2,.7,.2,1); }
+    .drawer.closed { transform: translateY(100%); }
+    @media (min-width: 640px) {
+      .drawer { transition: opacity 200ms, transform 280ms cubic-bezier(.2,.7,.2,1); }
+      .drawer.closed { transform: translateY(8px); opacity: 0; pointer-events: none; }
+    }
+
+    /* Toast */
+    .toast { transition: opacity 250ms, transform 250ms; }
+    .toast.hidden-toast { opacity: 0; transform: translateY(8px); pointer-events: none; }
+
+    /* Prevent iOS zoom on input focus */
+    @media screen and (max-width: 768px) {
+      input, select, textarea { font-size: 16px !important; }
+    }
+
+    .clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Toggle switch for role */
+    .toggle {
+      width: 44px; height: 24px;
+      background: #E2E0F0;
+      border-radius: 999px;
+      position: relative;
+      transition: background 200ms;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      top: 2px; left: 2px;
+      background: white;
+      border-radius: 999px;
+      transition: transform 200ms;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on { background: #6C5CE7; }
+    .toggle.on::after { transform: translateX(20px); }
+    .toggle.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Avatar gradient backgrounds — deterministic by first letter */
+    .avatar { display:inline-flex; align-items:center; justify-content:center; color:white; font-weight:600; }
+  </style>
+</head>
+
+<body class="font-sans text-ink min-h-screen safe-pb">
+
+  <!-- ============================================================
+       HEADER — Ziro-style: logo left, nav center (desktop), auth right
+       ============================================================ -->
+  <header class="safe-pt sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+      <!-- Brand -->
+      <a href="#" class="flex items-center gap-2.5">
+        <!-- Geometric mark — purple + orange like Ziro -->
+        <div class="relative w-9 h-9 flex items-center justify-center">
+          <svg viewBox="0 0 36 36" class="w-9 h-9" aria-hidden="true">
+            <path d="M6 4 L20 4 L26 18 L14 18 Z" fill="#6C5CE7"/>
+            <path d="M22 18 L32 18 L26 30 L20 30 Z" fill="#FF7A59"/>
+            <circle cx="9" cy="26" r="4" fill="#6C5CE7" opacity="0.6"/>
+          </svg>
+        </div>
+        <span class="font-bold text-xl tracking-tight">OPS Hub</span>
+      </a>
+
+      <!-- Nav (desktop only) -->
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate">
+        <a href="#" class="text-ink">Home</a>
+        <a href="#resourcesAnchor" class="hover:text-ink transition">Resources</a>
+        <a href="#" id="navManage" class="hover:text-ink transition hidden">Manage</a>
+      </nav>
+
+      <!-- Auth area -->
+      <div id="authArea" class="flex items-center gap-2">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       HERO SECTION — Ziro layout: big heading + search + chips
+       ============================================================ -->
+  <section class="relative overflow-hidden">
+    <!-- Decorative blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 pt-10 sm:pt-16 pb-8 sm:pb-12 grid md:grid-cols-2 gap-8 items-center relative">
+      <!-- Left: text + search -->
+      <div class="reveal" style="animation-delay: 40ms">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
+          Find your team's<br>
+          resources through<br>
+          <span class="text-brand">OPS Hub</span> easily
+        </h1>
+        <p class="text-slate mt-5 max-w-md text-[15px] sm:text-base leading-relaxed">
+          Every link, document, and tool your team needs — searchable, organized, always one tap away.
+        </p>
+
+        <!-- Search bar — Ziro-style: rounded, white, with purple button -->
+        <div class="mt-7 bg-white rounded-3xl shadow-card p-2 flex items-center gap-2 max-w-lg border border-line">
+          <div class="flex items-center gap-2.5 flex-1 px-4">
+            <svg class="w-4 h-4 text-mute shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+              <path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Search here..."
+              autocomplete="off"
+              class="flex-1 bg-transparent border-0 outline-none py-3 text-[15px] placeholder:text-mute focus:ring-0"
+              aria-label="Search resources"
+            />
+          </div>
+          <button id="searchBtn" class="px-6 py-3 bg-brand hover:bg-brand-dk text-white rounded-2xl text-sm font-semibold transition-colors whitespace-nowrap">
+            Search
+          </button>
+        </div>
+
+        <!-- Filter chips -->
+        <div id="filterPills" class="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Filter by category">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+
+      <!-- Right: decorative illustration -->
+      <div class="hero-illustration hidden md:flex justify-center items-center reveal" style="animation-delay: 160ms">
+        <div class="relative w-full max-w-sm aspect-square">
+          <!-- Big circle backdrop -->
+          <div class="absolute inset-4 rounded-full bg-gradient-to-br from-accent-lt to-brand-lt"></div>
+
+          <!-- Floating cards -->
+          <div class="absolute top-6 -left-2 bg-white rounded-2xl shadow-pop p-3 flex items-center gap-2.5 w-56">
+            <div class="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#6C5CE7" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold truncate">Daily SOP</p>
+              <p class="text-[10px] text-mute">Operations</p>
+            </div>
+          </div>
+
+          <div class="absolute top-32 -right-2 bg-white rounded-2xl shadow-pop p-3 flex items-center gap-2.5 w-52">
+            <div class="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2v20M2 12h20" stroke="#FF7A59" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold truncate">Brand Kit</p>
+              <p class="text-[10px] text-mute">Marketing</p>
+            </div>
+          </div>
+
+          <div class="absolute bottom-8 left-6 bg-white rounded-2xl shadow-pop p-3 flex items-center gap-2.5 w-60">
+            <div class="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M3 17l6-6 4 4 8-8" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold truncate">Q4 Report</p>
+              <p class="text-[10px] text-mute">Finance</p>
+            </div>
+          </div>
+
+          <!-- Center decorative ring -->
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 border-dashed border-brand/30 animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MAIN — Results section
+       ============================================================ -->
+  <main id="resourcesAnchor" class="max-w-6xl mx-auto px-5 sm:px-8 pb-28">
+
+    <!-- Section header -->
+    <div class="flex items-baseline justify-between mt-6 mb-6">
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">
+          Showing <span id="resultsCount">0</span> resources
+        </h2>
+        <p class="text-sm text-slate mt-1" id="filterLabel">All categories</p>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <section id="resultsContainer">
+      <!-- Filled by JS -->
+    </section>
+
+    <!-- Empty -->
+    <div id="emptyState" class="hidden text-center py-20 bg-white rounded-3xl border border-line">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-lt mb-4">
+        <svg class="w-7 h-7 text-brand" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+          <path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="text-lg font-semibold">Nothing matches that search</p>
+      <p class="text-slate text-sm mt-1">Try a different keyword or clear the filter.</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="text-center py-20">
+      <div class="inline-block w-8 h-8 border-3 border-brand-lt border-t-brand rounded-full animate-spin"></div>
+      <p class="text-slate text-sm mt-3">Loading resources...</p>
+    </div>
+
+  </main>
+
+  <!-- ============================================================
+       FLOATING ADMIN ACTION (FAB)
+       ============================================================ -->
+  <button
+    id="adminFab"
+    class="hidden fixed bottom-6 right-5 sm:right-8 z-20 px-5 py-3.5 bg-brand text-white rounded-full shadow-pop hover:bg-brand-dk transition-colors flex items-center gap-2 font-semibold text-sm"
+    aria-label="Open admin panel">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    Manage
+  </button>
+
+  <!-- ============================================================
+       ADMIN DRAWER
+       ============================================================ -->
+  <div id="adminDrawerBackdrop" class="hidden fixed inset-0 bg-ink/40 backdrop-blur-sm z-40" aria-hidden="true"></div>
+  <aside
+    id="adminDrawer"
+    class="drawer closed fixed z-50 inset-x-0 bottom-0 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:top-20 sm:w-[480px] bg-white rounded-t-3xl sm:rounded-3xl border border-line shadow-pop overflow-hidden flex flex-col"
+    role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+
+    <header class="flex items-center justify-between p-5 border-b border-line">
+      <div>
+        <h3 id="adminTitle" class="text-xl font-bold">Manage</h3>
+        <p class="text-xs text-slate mt-0.5">Categories, links &amp; team members</p>
+      </div>
+      <button id="closeAdmin" class="w-9 h-9 rounded-xl hover:bg-brand-50 flex items-center justify-center transition" aria-label="Close panel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-line px-2">
+      <button data-tab="links" class="admin-tab flex-1 py-3 text-sm font-semibold border-b-2 border-brand text-brand">Links</button>
+      <button data-tab="categories" class="admin-tab flex-1 py-3 text-sm font-semibold border-b-2 border-transparent text-mute">Categories</button>
+      <button data-tab="users" class="admin-tab flex-1 py-3 text-sm font-semibold border-b-2 border-transparent text-mute">Users</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-5">
+
+      <!-- LINKS TAB -->
+      <div id="tabLinks" class="space-y-4">
+        <form id="linkForm" class="space-y-3 bg-brand-50 border border-line rounded-2xl p-4">
+          <input type="hidden" id="linkId" />
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Title</label>
+            <input id="linkTitle" type="text" required maxlength="100"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">URL</label>
+            <input id="linkUrl" type="url" required placeholder="https://..."
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm font-mono focus:border-brand outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Description (optional)</label>
+            <textarea id="linkDesc" rows="2" maxlength="200"
+                      class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm resize-none focus:border-brand outline-none"></textarea>
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Category</label>
+            <select id="linkCategory" required
+                    class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none">
+            </select>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="submit" class="flex-1 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-dk transition-colors">
+              <span id="linkFormBtnText">Add link</span>
+            </button>
+            <button type="button" id="linkFormCancel" class="hidden px-4 py-2.5 border border-line rounded-xl text-sm hover:bg-brand-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+
+        <div>
+          <p class="text-[11px] uppercase tracking-wider text-slate font-semibold mb-2">All links</p>
+          <ul id="adminLinkList" class="space-y-2"></ul>
+        </div>
+      </div>
+
+      <!-- CATEGORIES TAB -->
+      <div id="tabCategories" class="hidden space-y-4">
+        <form id="catForm" class="space-y-3 bg-brand-50 border border-line rounded-2xl p-4">
+          <input type="hidden" id="catId" />
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Category name</label>
+            <input id="catName" type="text" required maxlength="40"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Sort order (lower = first)</label>
+            <input id="catOrder" type="number" value="100" min="0"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm font-mono focus:border-brand outline-none" />
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="submit" class="flex-1 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-dk transition-colors">
+              <span id="catFormBtnText">Add category</span>
+            </button>
+            <button type="button" id="catFormCancel" class="hidden px-4 py-2.5 border border-line rounded-xl text-sm hover:bg-brand-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+
+        <div>
+          <p class="text-[11px] uppercase tracking-wider text-slate font-semibold mb-2">All categories</p>
+          <ul id="adminCatList" class="space-y-2"></ul>
+        </div>
+      </div>
+
+      <!-- USERS TAB (admin only) -->
+      <div id="tabUsers" class="hidden space-y-4">
+        <!-- Add new user form -->
+        <form id="userForm" class="space-y-3 bg-brand-50 border border-line rounded-2xl p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-brand">
+              <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21v-1a6 6 0 0 1 12 0v1M20 8v6M17 11h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="text-sm font-bold text-ink">Create a new user</p>
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Email</label>
+            <input id="newUserEmail" type="email" required placeholder="member@team.com"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Display name (optional)</label>
+            <input id="newUserName" type="text" maxlength="60" placeholder="Jane Doe"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Initial password</label>
+            <div class="relative">
+              <input id="newUserPassword" type="text" required minlength="6" placeholder="Min 6 characters"
+                     class="w-full mt-1 px-3 py-2.5 pr-20 bg-white border border-line rounded-xl text-sm font-mono focus:border-brand outline-none" />
+              <button type="button" id="genPasswordBtn"
+                      class="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1.5 text-[11px] font-semibold bg-white border border-line rounded-lg hover:bg-brand hover:text-white hover:border-brand transition-colors">
+                Generate
+              </button>
+            </div>
+            <p class="text-[11px] text-mute mt-1.5 leading-relaxed">
+              Share this password with the user securely. They can change it later in their account.
+            </p>
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Role</label>
+            <div class="flex gap-2 mt-1">
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="newUserRole" value="viewer" checked class="peer sr-only" />
+                <div class="px-3 py-2.5 bg-white border border-line rounded-xl text-sm text-center font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white transition">
+                  👀 Viewer
+                </div>
+              </label>
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="newUserRole" value="admin" class="peer sr-only" />
+                <div class="px-3 py-2.5 bg-white border border-line rounded-xl text-sm text-center font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white transition">
+                  ⭐ Admin
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-dk transition-colors flex items-center justify-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span id="userFormBtnText">Create user</span>
+          </button>
+        </form>
+
+        <!-- Success card (shown after creating a user) -->
+        <div id="userCreatedCard" class="hidden bg-success/10 border border-success/30 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-success">
+              <path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="text-sm font-bold text-ink">User created successfully</p>
+          </div>
+          <p class="text-xs text-slate">Share these credentials securely (copy them now — the password won't be shown again).</p>
+          <div class="bg-white border border-line rounded-xl p-3 font-mono text-xs space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-mute">Email:</span>
+              <span id="createdEmail" class="font-semibold truncate"></span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-mute">Password:</span>
+              <span id="createdPassword" class="font-semibold truncate"></span>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button id="copyCredsBtn" class="flex-1 py-2 bg-ink text-white rounded-xl text-xs font-semibold hover:bg-brand transition-colors">
+              Copy credentials
+            </button>
+            <button id="dismissCredsBtn" class="px-4 py-2 border border-line rounded-xl text-xs font-semibold hover:bg-white">
+              Dismiss
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter -->
+        <div class="pt-2">
+          <input id="userSearch" type="search" placeholder="Search by email..." class="w-full px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+        </div>
+
+        <div>
+          <p class="text-[11px] uppercase tracking-wider text-slate font-semibold mb-2">
+            <span id="userCountLabel">All users</span>
+          </p>
+          <ul id="adminUserList" class="space-y-2"></ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       LOGIN MODAL — Email/Password only (closed team system)
+       ============================================================ -->
+  <div id="loginModal" class="hidden fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl border border-line shadow-pop overflow-hidden safe-pb">
+      <div class="p-6 sm:p-8">
+        <p class="text-[11px] uppercase tracking-[0.2em] text-slate font-semibold">Sign in</p>
+        <h3 class="text-2xl font-bold mt-1">Welcome back 👋</h3>
+        <p class="text-sm text-slate mt-2">Sign in with the credentials your administrator gave you.</p>
+
+        <form id="emailForm" class="space-y-3 mt-6">
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Email</label>
+            <input id="emailInput" type="email" required placeholder="you@team.com" autocomplete="email"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">Password</label>
+            <input id="passwordInput" type="password" required placeholder="••••••••" minlength="6" autocomplete="current-password"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+          <button type="submit" class="w-full mt-2 py-3 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-dk transition-colors">
+            Sign in
+          </button>
+        </form>
+
+        <p id="loginError" class="hidden mt-3 text-xs text-danger"></p>
+
+        <div class="mt-5 pt-5 border-t border-line">
+          <button id="forgotPwBtn" class="w-full text-xs text-brand hover:text-brand-dk font-semibold">
+            Forgot password?
+          </button>
+          <p class="text-[11px] text-mute text-center mt-3 leading-relaxed">
+            Accounts are created by your administrator.<br>
+            Contact them if you don't have one yet.
+          </p>
+        </div>
+
+        <button id="closeLogin" class="mt-5 w-full text-xs text-slate hover:text-ink">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TOAST
+       ============================================================ -->
+  <div id="toast" class="toast hidden-toast fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 bg-ink text-white text-sm rounded-full shadow-pop font-medium">
+  </div>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="border-t border-line bg-white">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate">
+      <p>© OPS Hub · A friendly directory for busy teams.</p>
+      <p class="font-mono">v1.1</p>
+    </div>
+  </footer>
+
+
+  <!-- ============================================================
+       APPLICATION SCRIPT  (Firebase v10 modular SDK)
+       ============================================================ -->
+  <script type="module">
+    /* -------------------------------------------------------------
+       1.  FIREBASE INITIALIZATION
+       ------------------------------------------------------------- */
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword,
+      sendPasswordResetEmail,
+      onAuthStateChanged, signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
+      onSnapshot, query, orderBy, getDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ▼▼▼ REPLACE WITH YOUR FIREBASE CONFIG ▼▼▼
+    const firebaseConfig = {
+      apiKey:            "YOUR_API_KEY",
+      authDomain:        "YOUR_PROJECT.firebaseapp.com",
+      projectId:         "YOUR_PROJECT_ID",
+      storageBucket:     "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId:             "YOUR_APP_ID",
+    };
+    // ▲▲▲ REPLACE WITH YOUR FIREBASE CONFIG ▲▲▲
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    /* -------------------------------------------------------------
+       2.  APP STATE
+       ------------------------------------------------------------- */
+    const state = {
+      user:        null,
+      role:        'viewer',
+      categories:  [],
+      links:       [],
+      users:       [],
+      searchTerm:  '',
+      userSearch:  '',
+      activeFilter:'all',
+    };
+
+    let unsubscribeUsers = null;
+
+    /* -------------------------------------------------------------
+       3.  DOM REFS
+       ------------------------------------------------------------- */
+    const $ = id => document.getElementById(id);
+    const els = {
+      authArea: $('authArea'),
+      navManage: $('navManage'),
+      searchInput: $('searchInput'),
+      searchBtn: $('searchBtn'),
+      filterPills: $('filterPills'),
+      results: $('resultsContainer'),
+      resultsCount: $('resultsCount'),
+      filterLabel: $('filterLabel'),
+      empty: $('emptyState'),
+      loading: $('loadingState'),
+      adminFab: $('adminFab'),
+      adminDrawer: $('adminDrawer'),
+      adminBackdrop: $('adminDrawerBackdrop'),
+      closeAdmin: $('closeAdmin'),
+      // Login
+      loginModal: $('loginModal'),
+      closeLogin: $('closeLogin'),
+      emailForm: $('emailForm'),
+      emailInput: $('emailInput'),
+      passwordInput: $('passwordInput'),
+      forgotPwBtn: $('forgotPwBtn'),
+      loginError: $('loginError'),
+      toast: $('toast'),
+      // Link form
+      linkForm: $('linkForm'), linkId: $('linkId'), linkTitle: $('linkTitle'),
+      linkUrl: $('linkUrl'), linkDesc: $('linkDesc'), linkCategory: $('linkCategory'),
+      linkFormBtnText: $('linkFormBtnText'), linkFormCancel: $('linkFormCancel'),
+      adminLinkList: $('adminLinkList'),
+      // Category form
+      catForm: $('catForm'), catId: $('catId'), catName: $('catName'), catOrder: $('catOrder'),
+      catFormBtnText: $('catFormBtnText'), catFormCancel: $('catFormCancel'),
+      adminCatList: $('adminCatList'),
+      // Users — create form + list
+      userForm: $('userForm'),
+      newUserEmail: $('newUserEmail'),
+      newUserName: $('newUserName'),
+      newUserPassword: $('newUserPassword'),
+      genPasswordBtn: $('genPasswordBtn'),
+      userFormBtnText: $('userFormBtnText'),
+      userCreatedCard: $('userCreatedCard'),
+      createdEmail: $('createdEmail'),
+      createdPassword: $('createdPassword'),
+      copyCredsBtn: $('copyCredsBtn'),
+      dismissCredsBtn: $('dismissCredsBtn'),
+      userSearchInput: $('userSearch'),
+      userCountLabel: $('userCountLabel'),
+      adminUserList: $('adminUserList'),
+      // Tabs
+      tabLinks: $('tabLinks'), tabCategories: $('tabCategories'), tabUsers: $('tabUsers'),
+    };
+
+    /* -------------------------------------------------------------
+       4.  TOAST
+       ------------------------------------------------------------- */
+    let toastTimer = null;
+    function toast(msg) {
+      els.toast.textContent = msg;
+      els.toast.classList.remove('hidden-toast');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => els.toast.classList.add('hidden-toast'), 2200);
+    }
+
+    /* -------------------------------------------------------------
+       5.  AUTH FLOW
+       ------------------------------------------------------------- */
+    onAuthStateChanged(auth, async (user) => {
+      state.user = user;
+
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            // Existing user — load their role
+            state.role = userDoc.data().role || 'viewer';
+          } else {
+            // Orphan auth account (no Firestore doc) — likely the bootstrap admin
+            // before their /users/{uid} doc was created in the Console.
+            // Default to viewer; admin must create the doc manually.
+            state.role = 'viewer';
+            console.warn('No /users/' + user.uid + ' doc found. Create it in Firestore Console.');
+          }
+        } catch (e) {
+          console.warn('Could not load user role', e);
+          state.role = 'viewer';
+        }
+        closeLoginModal();
+      } else {
+        state.role = 'viewer';
+      }
+
+      renderAuthArea();
+      toggleAdminUI();
+      manageUsersListener();
+    });
+
+    function renderAuthArea() {
+      if (state.user) {
+        const name = state.user.displayName || state.user.email || '';
+        const initial = name.charAt(0).toUpperCase() || '?';
+        const color = avatarColor(name);
+        els.authArea.innerHTML = `
+          <div class="flex items-center gap-2">
+            ${state.role === 'admin'
+              ? '<span class="hidden sm:inline-flex text-[10px] uppercase tracking-wider px-2 py-1 bg-accent/15 text-accent rounded-full font-bold">Admin</span>'
+              : ''}
+            <button id="signOutBtn" class="flex items-center gap-2 pr-3 pl-1 py-1 rounded-full hover:bg-brand-50 transition-colors">
+              <span class="avatar w-8 h-8 rounded-full text-xs" style="background:${color}">${initial}</span>
+              <span class="hidden sm:inline text-slate text-xs font-semibold">Sign out</span>
+            </button>
+          </div>`;
+        $('signOutBtn').addEventListener('click', () => signOut(auth).then(() => toast('Signed out')));
+      } else {
+        els.authArea.innerHTML = `
+          <button id="signInBtn" class="px-2 py-1.5 text-slate text-sm font-semibold hover:text-ink hidden sm:inline-block">Log in</button>
+          <button id="signUpHero" class="px-5 py-2.5 bg-brand text-white rounded-full text-sm font-semibold hover:bg-brand-dk transition-colors">
+            Sign in
+          </button>`;
+        $('signInBtn').addEventListener('click', openLoginModal);
+        $('signUpHero').addEventListener('click', openLoginModal);
+      }
+    }
+
+    function toggleAdminUI() {
+      const isAdmin = state.role === 'admin' && state.user;
+      els.adminFab.classList.toggle('hidden', !isAdmin);
+      els.navManage.classList.toggle('hidden', !isAdmin);
+      if (!isAdmin) closeAdminDrawer();
+    }
+
+    // Attach/detach the users listener based on role
+    function manageUsersListener() {
+      if (state.role === 'admin' && state.user) {
+        if (!unsubscribeUsers) {
+          unsubscribeUsers = onSnapshot(
+            collection(db, 'users'),
+            (snap) => {
+              state.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+              renderAdminUserList();
+            },
+            (err) => console.warn('users listener:', err.code)
+          );
+        }
+      } else {
+        if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
+        state.users = [];
+      }
+    }
+
+    /* -------------------------------------------------------------
+       6.  LOGIN MODAL
+       ------------------------------------------------------------- */
+    function openLoginModal() {
+      els.loginModal.classList.remove('hidden');
+      els.loginError.classList.add('hidden');
+    }
+    function closeLoginModal() {
+      els.loginModal.classList.add('hidden');
+      els.emailForm.reset();
+    }
+    els.closeLogin.addEventListener('click', closeLoginModal);
+    els.loginModal.addEventListener('click', (e) => {
+      if (e.target === els.loginModal) closeLoginModal();
+    });
+
+    els.emailForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await signInWithEmailAndPassword(auth, els.emailInput.value.trim(), els.passwordInput.value);
+      }
+      catch (e) {
+        showLoginError(prettyAuthError(e));
+      }
+    });
+
+    els.forgotPwBtn.addEventListener('click', async () => {
+      const email = els.emailInput.value.trim();
+      if (!email) {
+        showLoginError('Enter your email above first, then click "Forgot password?".');
+        els.emailInput.focus();
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        els.loginError.classList.add('hidden');
+        toast('Password reset email sent — check your inbox');
+      } catch (e) {
+        showLoginError(prettyAuthError(e));
+      }
+    });
+
+    function showLoginError(msg) {
+      els.loginError.textContent = msg;
+      els.loginError.classList.remove('hidden');
+    }
+
+    // Human-friendly Firebase auth error messages
+    function prettyAuthError(e) {
+      const code = e?.code || '';
+      const map = {
+        'auth/invalid-credential':  'Incorrect email or password.',
+        'auth/invalid-email':       'That email address looks invalid.',
+        'auth/user-not-found':      'No account exists for this email.',
+        'auth/wrong-password':      'Incorrect password.',
+        'auth/too-many-requests':   'Too many attempts. Please try again in a few minutes.',
+        'auth/email-already-in-use':'An account with this email already exists.',
+        'auth/weak-password':       'Password should be at least 6 characters.',
+        'auth/network-request-failed':'Network error. Check your connection.',
+      };
+      return map[code] || (e.message || 'Sign-in failed.').replace('Firebase: ', '');
+    }
+
+    /* -------------------------------------------------------------
+       7.  FIRESTORE LIVE LISTENERS — categories + links
+       ------------------------------------------------------------- */
+    onSnapshot(
+      query(collection(db, 'categories'), orderBy('order', 'asc')),
+      (snap) => {
+        state.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+        renderCategorySelect();
+        renderAdminCategoryList();
+      },
+      (err) => console.error('categories listener', err)
+    );
+
+    onSnapshot(
+      query(collection(db, 'links'), orderBy('createdAt', 'desc')),
+      (snap) => {
+        state.links = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        els.loading.classList.add('hidden');
+        render();
+        renderAdminLinkList();
+      },
+      (err) => {
+        console.error('links listener', err);
+        els.loading.classList.add('hidden');
+      }
+    );
+
+    /* -------------------------------------------------------------
+       8.  RENDER (filters + cards)
+       ------------------------------------------------------------- */
+    function render() {
+      // Filter chips
+      const pills = [
+        { id: 'all', name: 'All' },
+        ...state.categories,
+      ];
+      els.filterPills.innerHTML = pills.map(p => `
+        <button class="chip px-4 py-2 text-xs sm:text-sm font-semibold border border-line rounded-full bg-white text-slate hover:border-brand hover:text-brand ${state.activeFilter === p.id ? 'active' : ''}"
+                data-filter="${p.id}" role="tab" aria-selected="${state.activeFilter === p.id}">
+          ${escapeHtml(p.name)}
+        </button>`).join('');
+
+      els.filterPills.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeFilter = btn.dataset.filter;
+          render();
+        });
+      });
+
+      // Filter links
+      const term = state.searchTerm.trim().toLowerCase();
+      const filtered = state.links.filter(link => {
+        const inCat = state.activeFilter === 'all' || link.categoryId === state.activeFilter;
+        if (!inCat) return false;
+        if (!term) return true;
+        return (
+          (link.title || '').toLowerCase().includes(term) ||
+          (link.desc  || '').toLowerCase().includes(term) ||
+          (link.url   || '').toLowerCase().includes(term) ||
+          (getCategoryName(link.categoryId) || '').toLowerCase().includes(term)
+        );
+      });
+
+      els.resultsCount.textContent = filtered.length;
+      const activeName = state.activeFilter === 'all' ? 'All categories' : getCategoryName(state.activeFilter);
+      els.filterLabel.textContent = term
+        ? `Filtered by "${term}" in ${activeName}`
+        : activeName;
+
+      if (filtered.length === 0) {
+        els.results.innerHTML = '';
+        els.empty.classList.remove('hidden');
+        return;
+      }
+      els.empty.classList.add('hidden');
+
+      // Render as a flat list of cards — Ziro-style job list
+      els.results.innerHTML = `
+        <div class="space-y-3">
+          ${filtered.map((link, i) => renderLinkRow(link, i)).join('')}
+        </div>`;
+
+      // Copy buttons
+      els.results.querySelectorAll('[data-copy]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          navigator.clipboard.writeText(btn.dataset.copy).then(() => toast('Link copied'));
+        });
+      });
+    }
+
+    function renderLinkRow(link, i) {
+      const host = safeHost(link.url);
+      const catName = getCategoryName(link.categoryId) || 'Uncategorized';
+      const initial = (link.title || '?').charAt(0).toUpperCase();
+      const color = avatarColor(link.title || '');
+      return `
+        <a href="${escapeAttr(link.url)}" target="_blank" rel="noopener noreferrer"
+           class="card group block bg-white border border-line rounded-2xl p-4 sm:p-5 shadow-card reveal"
+           style="animation-delay: ${i * 35}ms">
+          <div class="flex items-center gap-3 sm:gap-4">
+            <!-- Icon -->
+            <div class="avatar w-12 h-12 sm:w-14 sm:h-14 rounded-2xl text-xl shrink-0" style="background:${color}">
+              ${initial}
+            </div>
+            <!-- Body -->
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-[15px] sm:text-base leading-snug truncate group-hover:text-brand transition-colors">${escapeHtml(link.title)}</p>
+              <p class="text-xs text-slate truncate mt-0.5">${escapeHtml(catName)}</p>
+              ${link.desc ? `<p class="hidden sm:block text-xs text-mute mt-1 clamp-2">${escapeHtml(link.desc)}</p>` : ''}
+            </div>
+            <!-- Right side: host + actions -->
+            <div class="hidden sm:flex flex-col items-end gap-1.5 min-w-[120px]">
+              <p class="text-[11px] text-mute font-mono truncate max-w-[140px]">${escapeHtml(host)}</p>
+              <div class="flex items-center gap-2">
+                <button data-copy="${escapeAttr(link.url)}" aria-label="Copy link"
+                        class="w-8 h-8 rounded-full border border-line hover:bg-brand-50 hover:border-brand flex items-center justify-center transition-colors">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/>
+                  </svg>
+                </button>
+                <span class="px-3 py-1.5 bg-brand text-white rounded-full text-xs font-semibold group-hover:bg-brand-dk transition-colors">Open</span>
+              </div>
+            </div>
+            <!-- Mobile actions -->
+            <div class="sm:hidden flex items-center gap-1.5">
+              <button data-copy="${escapeAttr(link.url)}" aria-label="Copy link"
+                      class="w-9 h-9 rounded-full border border-line hover:bg-brand-50 flex items-center justify-center transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </button>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-brand">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </a>`;
+    }
+
+    /* -------------------------------------------------------------
+       9.  SEARCH
+       ------------------------------------------------------------- */
+    let searchDebounce;
+    els.searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        state.searchTerm = e.target.value;
+        render();
+      }, 80);
+    });
+    els.searchBtn.addEventListener('click', () => {
+      state.searchTerm = els.searchInput.value;
+      render();
+      document.getElementById('resourcesAnchor')?.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        els.searchInput.focus();
+        els.searchInput.select();
+      }
+      if (e.key === 'Escape') {
+        if (!els.loginModal.classList.contains('hidden')) closeLoginModal();
+        if (!els.adminDrawer.classList.contains('closed')) closeAdminDrawer();
+      }
+    });
+
+    /* -------------------------------------------------------------
+       10.  ADMIN DRAWER
+       ------------------------------------------------------------- */
+    els.adminFab.addEventListener('click', openAdminDrawer);
+    els.navManage.addEventListener('click', (e) => { e.preventDefault(); openAdminDrawer(); });
+    els.closeAdmin.addEventListener('click', closeAdminDrawer);
+    els.adminBackdrop.addEventListener('click', closeAdminDrawer);
+
+    function openAdminDrawer() {
+      els.adminDrawer.classList.remove('closed');
+      els.adminBackdrop.classList.remove('hidden');
+    }
+    function closeAdminDrawer() {
+      els.adminDrawer.classList.add('closed');
+      els.adminBackdrop.classList.add('hidden');
+      resetLinkForm();
+      resetCatForm();
+    }
+
+    document.querySelectorAll('.admin-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(b => {
+          b.classList.remove('border-brand', 'text-brand');
+          b.classList.add('border-transparent', 'text-mute');
+        });
+        btn.classList.add('border-brand', 'text-brand');
+        btn.classList.remove('border-transparent', 'text-mute');
+        const tab = btn.dataset.tab;
+        els.tabLinks.classList.toggle('hidden', tab !== 'links');
+        els.tabCategories.classList.toggle('hidden', tab !== 'categories');
+        els.tabUsers.classList.toggle('hidden', tab !== 'users');
+      });
+    });
+
+    /* -------------------------------------------------------------
+       11.  ADMIN — LINKS CRUD
+       ------------------------------------------------------------- */
+    function renderCategorySelect() {
+      els.linkCategory.innerHTML = state.categories.length
+        ? state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')
+        : '<option value="">— Create a category first —</option>';
+    }
+
+    function renderAdminLinkList() {
+      if (state.role !== 'admin') return;
+      els.adminLinkList.innerHTML = state.links.length === 0
+        ? '<li class="text-xs text-slate py-3 text-center">No links yet.</li>'
+        : state.links.map(l => `
+          <li class="flex items-center justify-between gap-2 p-3 bg-white border border-line rounded-xl">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold truncate">${escapeHtml(l.title)}</p>
+              <p class="text-[11px] text-slate font-mono truncate">${escapeHtml(safeHost(l.url))} · ${escapeHtml(getCategoryName(l.categoryId) || 'Uncategorized')}</p>
+            </div>
+            <button data-edit-link="${l.id}" class="w-8 h-8 rounded-lg hover:bg-brand-50 flex items-center justify-center transition" aria-label="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            </button>
+            <button data-del-link="${l.id}" class="w-8 h-8 rounded-lg hover:bg-danger/10 flex items-center justify-center text-danger transition" aria-label="Delete">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </li>`).join('');
+
+      els.adminLinkList.querySelectorAll('[data-edit-link]').forEach(b =>
+        b.addEventListener('click', () => editLink(b.dataset.editLink)));
+      els.adminLinkList.querySelectorAll('[data-del-link]').forEach(b =>
+        b.addEventListener('click', () => deleteLink(b.dataset.delLink)));
+    }
+
+    function editLink(id) {
+      const l = state.links.find(x => x.id === id);
+      if (!l) return;
+      els.linkId.value = l.id;
+      els.linkTitle.value = l.title || '';
+      els.linkUrl.value   = l.url   || '';
+      els.linkDesc.value  = l.desc  || '';
+      els.linkCategory.value = l.categoryId || '';
+      els.linkFormBtnText.textContent = 'Save changes';
+      els.linkFormCancel.classList.remove('hidden');
+      els.linkTitle.focus();
+    }
+
+    function resetLinkForm() {
+      els.linkForm.reset();
+      els.linkId.value = '';
+      els.linkFormBtnText.textContent = 'Add link';
+      els.linkFormCancel.classList.add('hidden');
+    }
+    els.linkFormCancel.addEventListener('click', resetLinkForm);
+
+    els.linkForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (state.role !== 'admin') return toast('Admin access required');
+
+      const payload = {
+        title:      els.linkTitle.value.trim(),
+        url:        els.linkUrl.value.trim(),
+        desc:       els.linkDesc.value.trim(),
+        categoryId: els.linkCategory.value,
+        updatedAt:  serverTimestamp(),
+      };
+
+      try {
+        if (els.linkId.value) {
+          await updateDoc(doc(db, 'links', els.linkId.value), payload);
+          toast('Link updated');
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, 'links'), payload);
+          toast('Link added');
+        }
+        resetLinkForm();
+      } catch (err) {
+        console.error(err);
+        toast('Error: ' + err.code);
+      }
+    });
+
+    async function deleteLink(id) {
+      if (!confirm('Delete this link permanently?')) return;
+      try {
+        await deleteDoc(doc(db, 'links', id));
+        toast('Link deleted');
+      } catch (err) { toast('Error: ' + err.code); }
+    }
+
+    /* -------------------------------------------------------------
+       12.  ADMIN — CATEGORIES CRUD
+       ------------------------------------------------------------- */
+    function renderAdminCategoryList() {
+      if (state.role !== 'admin') return;
+      els.adminCatList.innerHTML = state.categories.length === 0
+        ? '<li class="text-xs text-slate py-3 text-center">No categories yet.</li>'
+        : state.categories.map(c => `
+          <li class="flex items-center justify-between gap-2 p-3 bg-white border border-line rounded-xl">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold truncate">${escapeHtml(c.name)}</p>
+              <p class="text-[11px] text-slate font-mono">order: ${c.order ?? '—'}</p>
+            </div>
+            <button data-edit-cat="${c.id}" class="w-8 h-8 rounded-lg hover:bg-brand-50 flex items-center justify-center transition" aria-label="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            </button>
+            <button data-del-cat="${c.id}" class="w-8 h-8 rounded-lg hover:bg-danger/10 flex items-center justify-center text-danger transition" aria-label="Delete">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </li>`).join('');
+
+      els.adminCatList.querySelectorAll('[data-edit-cat]').forEach(b =>
+        b.addEventListener('click', () => editCategory(b.dataset.editCat)));
+      els.adminCatList.querySelectorAll('[data-del-cat]').forEach(b =>
+        b.addEventListener('click', () => deleteCategory(b.dataset.delCat)));
+    }
+
+    function editCategory(id) {
+      const c = state.categories.find(x => x.id === id);
+      if (!c) return;
+      els.catId.value    = c.id;
+      els.catName.value  = c.name  || '';
+      els.catOrder.value = c.order ?? 100;
+      els.catFormBtnText.textContent = 'Save changes';
+      els.catFormCancel.classList.remove('hidden');
+      els.catName.focus();
+    }
+
+    function resetCatForm() {
+      els.catForm.reset();
+      els.catId.value = '';
+      els.catOrder.value = 100;
+      els.catFormBtnText.textContent = 'Add category';
+      els.catFormCancel.classList.add('hidden');
+    }
+    els.catFormCancel.addEventListener('click', resetCatForm);
+
+    els.catForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (state.role !== 'admin') return toast('Admin access required');
+
+      const payload = {
+        name:      els.catName.value.trim(),
+        order:     Number(els.catOrder.value) || 100,
+        updatedAt: serverTimestamp(),
+      };
+
+      try {
+        if (els.catId.value) {
+          await updateDoc(doc(db, 'categories', els.catId.value), payload);
+          toast('Category updated');
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, 'categories'), payload);
+          toast('Category added');
+        }
+        resetCatForm();
+      } catch (err) { toast('Error: ' + err.code); }
+    });
+
+    async function deleteCategory(id) {
+      const linksInCat = state.links.filter(l => l.categoryId === id).length;
+      const msg = linksInCat > 0
+        ? `Delete this category? ${linksInCat} link(s) will become uncategorized.`
+        : 'Delete this category permanently?';
+      if (!confirm(msg)) return;
+      try {
+        await deleteDoc(doc(db, 'categories', id));
+        toast('Category deleted');
+      } catch (err) { toast('Error: ' + err.code); }
+    }
+
+    /* -------------------------------------------------------------
+       13.  ADMIN — USERS MANAGEMENT
+       ------------------------------------------------------------- */
+    els.userSearchInput.addEventListener('input', (e) => {
+      state.userSearch = e.target.value.toLowerCase();
+      renderAdminUserList();
+    });
+
+    // Generate a memorable random password (e.g., "violet-fox-4821")
+    function generatePassword() {
+      const adjectives = ['violet','sunny','clever','quiet','swift','brave','calm','bright','gentle','bold'];
+      const nouns      = ['fox','river','cloud','spark','tiger','willow','ember','meadow','comet','harbor'];
+      const num = Math.floor(1000 + Math.random() * 9000);
+      return `${pick(adjectives)}-${pick(nouns)}-${num}`;
+    }
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    els.genPasswordBtn.addEventListener('click', () => {
+      els.newUserPassword.value = generatePassword();
+    });
+
+    // Create a new user WITHOUT signing the admin out.
+    // Pattern: spin up a secondary Firebase app instance, create the user there,
+    // then tear it down. The primary `auth` session (the admin) stays intact.
+    els.userForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (state.role !== 'admin') return toast('Admin access required');
+
+      const email    = els.newUserEmail.value.trim().toLowerCase();
+      const name     = els.newUserName.value.trim();
+      const password = els.newUserPassword.value;
+      const role     = document.querySelector('input[name="newUserRole"]:checked')?.value || 'viewer';
+
+      if (password.length < 6) return showCreateError('Password must be at least 6 characters.');
+
+      // Lock the form while creating
+      els.userFormBtnText.textContent = 'Creating...';
+      const submitBtn = els.userForm.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+
+      let secondaryApp = null;
+      try {
+        // 1. Create a temporary, isolated Firebase app instance
+        secondaryApp = initializeApp(firebaseConfig, 'Secondary-' + Date.now());
+        const secondaryAuth = getAuth(secondaryApp);
+
+        // 2. Create the new auth account on the secondary instance
+        const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+        const newUid = cred.user.uid;
+
+        // 3. Sign out of the secondary instance immediately
+        await signOut(secondaryAuth);
+
+        // 4. Create the matching Firestore /users/{uid} doc (uses primary auth = admin)
+        await setDoc(doc(db, 'users', newUid), {
+          email:       email,
+          displayName: name,
+          role:        role,
+          createdAt:   serverTimestamp(),
+        });
+
+        // 5. Show success card with credentials
+        els.createdEmail.textContent    = email;
+        els.createdPassword.textContent = password;
+        els.userCreatedCard.classList.remove('hidden');
+        els.userCreatedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        // 6. Reset form
+        els.userForm.reset();
+        document.querySelector('input[name="newUserRole"][value="viewer"]').checked = true;
+
+        toast(`User created — role: ${role}`);
+      } catch (err) {
+        console.error(err);
+        showCreateError(prettyAuthError(err));
+      } finally {
+        // 7. Cleanup secondary app instance
+        if (secondaryApp) {
+          try { await deleteApp(secondaryApp); } catch {}
+        }
+        els.userFormBtnText.textContent = 'Create user';
+        submitBtn.disabled = false;
+      }
+    });
+
+    function showCreateError(msg) {
+      toast(msg);
+    }
+
+    // Copy credentials button
+    els.copyCredsBtn.addEventListener('click', () => {
+      const text = `Email: ${els.createdEmail.textContent}\nPassword: ${els.createdPassword.textContent}\nSign in at: ${location.origin + location.pathname}`;
+      navigator.clipboard.writeText(text).then(() => toast('Credentials copied'));
+    });
+    els.dismissCredsBtn.addEventListener('click', () => {
+      els.userCreatedCard.classList.add('hidden');
+      els.createdEmail.textContent = '';
+      els.createdPassword.textContent = '';
+    });
+
+    function renderAdminUserList() {
+      if (state.role !== 'admin') return;
+
+      const term = state.userSearch.trim();
+      const filtered = state.users.filter(u => {
+        if (!term) return true;
+        return (u.email || '').toLowerCase().includes(term)
+            || (u.displayName || '').toLowerCase().includes(term);
+      });
+
+      filtered.sort((a, b) => {
+        if (a.role !== b.role) return a.role === 'admin' ? -1 : 1;
+        return (a.email || '').localeCompare(b.email || '');
+      });
+
+      els.userCountLabel.textContent = `${filtered.length} ${filtered.length === 1 ? 'user' : 'users'}`;
+
+      els.adminUserList.innerHTML = filtered.length === 0
+        ? '<li class="text-xs text-slate py-3 text-center">No users found.</li>'
+        : filtered.map(u => {
+          const isMe = u.id === state.user?.uid;
+          const isAdmin = u.role === 'admin';
+          const name = u.displayName || u.email || 'Unknown';
+          const initial = name.charAt(0).toUpperCase();
+          const color = avatarColor(name);
+          return `
+            <li class="p-3 bg-white border border-line rounded-xl">
+              <div class="flex items-center gap-3">
+                <div class="avatar w-10 h-10 rounded-full text-sm shrink-0" style="background:${color}">
+                  ${initial}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <p class="text-sm font-semibold truncate">${escapeHtml(u.email || 'No email')}</p>
+                    ${isMe ? '<span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-brand-lt text-brand rounded-full font-bold">You</span>' : ''}
+                  </div>
+                  ${u.displayName ? `<p class="text-[11px] text-slate truncate mt-0.5">${escapeHtml(u.displayName)}</p>` : ''}
+                </div>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                  <span class="text-[10px] font-bold ${isAdmin ? 'text-accent' : 'text-mute'}">${isAdmin ? '⭐ ADMIN' : 'VIEWER'}</span>
+                  <div
+                    class="toggle ${isAdmin ? 'on' : ''} ${isMe ? 'disabled' : ''}"
+                    data-toggle-user="${u.id}"
+                    data-current-role="${u.role || 'viewer'}"
+                    role="switch"
+                    aria-checked="${isAdmin}"
+                    aria-label="Toggle admin for ${escapeAttr(u.email || u.id)}"
+                    ${isMe ? 'aria-disabled="true"' : ''}>
+                  </div>
+                </div>
+              </div>
+              ${!isMe ? `
+                <div class="flex gap-2 mt-3 pt-3 border-t border-line">
+                  <button data-reset-pw="${escapeAttr(u.email || '')}" class="flex-1 text-[11px] font-semibold py-1.5 border border-line rounded-lg hover:bg-brand-50 hover:border-brand hover:text-brand transition-colors">
+                    📧 Reset password
+                  </button>
+                  <button data-del-user="${u.id}" data-del-email="${escapeAttr(u.email || '')}" class="px-3 text-[11px] font-semibold py-1.5 border border-line rounded-lg hover:bg-danger/10 hover:border-danger hover:text-danger transition-colors">
+                    🗑
+                  </button>
+                </div>
+              ` : ''}
+            </li>`;
+        }).join('');
+
+      // Bind events
+      els.adminUserList.querySelectorAll('[data-toggle-user]').forEach(t =>
+        t.addEventListener('click', () => toggleUserRole(t.dataset.toggleUser, t.dataset.currentRole)));
+      els.adminUserList.querySelectorAll('[data-reset-pw]').forEach(b =>
+        b.addEventListener('click', () => resetUserPassword(b.dataset.resetPw)));
+      els.adminUserList.querySelectorAll('[data-del-user]').forEach(b =>
+        b.addEventListener('click', () => deleteUser(b.dataset.delUser, b.dataset.delEmail)));
+    }
+
+    async function toggleUserRole(uid, currentRole) {
+      if (uid === state.user?.uid) {
+        toast('You cannot change your own role');
+        return;
+      }
+      const newRole = currentRole === 'admin' ? 'viewer' : 'admin';
+      const target = state.users.find(u => u.id === uid);
+      const label = target?.email || 'this user';
+      if (!confirm(`Change role of ${label} to ${newRole.toUpperCase()}?`)) return;
+
+      try {
+        await updateDoc(doc(db, 'users', uid), {
+          role: newRole,
+          updatedAt: serverTimestamp(),
+        });
+        toast(`Role updated → ${newRole}`);
+      } catch (err) {
+        console.error(err);
+        toast('Error: ' + (err.code || 'permission denied'));
+      }
+    }
+
+    async function resetUserPassword(email) {
+      if (!email) return toast('No email on file for this user');
+      if (!confirm(`Send a password reset email to ${email}?`)) return;
+      try {
+        await sendPasswordResetEmail(auth, email);
+        toast('Reset email sent to ' + email);
+      } catch (err) {
+        toast('Error: ' + prettyAuthError(err));
+      }
+    }
+
+    async function deleteUser(uid, email) {
+      if (uid === state.user?.uid) return toast('You cannot delete your own account');
+      const ok = confirm(
+        `Delete the user record for ${email || uid}?\n\n` +
+        `⚠ This removes their /users/${uid} document and revokes app access immediately.\n\n` +
+        `Note: their Firebase Auth login still exists — to fully delete it, go to:\n` +
+        `Firebase Console → Authentication → Users → Delete ${email}`
+      );
+      if (!ok) return;
+      try {
+        await deleteDoc(doc(db, 'users', uid));
+        toast('User record deleted');
+      } catch (err) {
+        toast('Error: ' + (err.code || 'permission denied'));
+      }
+    }
+
+    /* -------------------------------------------------------------
+       14.  UTILITIES
+       ------------------------------------------------------------- */
+    function getCategoryName(id) {
+      const c = state.categories.find(x => x.id === id);
+      return c ? c.name : '';
+    }
+
+    function safeHost(url) {
+      try { return new URL(url).host.replace(/^www\./, ''); }
+      catch { return url; }
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => (
+        { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+      ));
+    }
+    function escapeAttr(s) { return escapeHtml(s); }
+
+    // Deterministic pleasant color from a string (used for avatars)
+    function avatarColor(str) {
+      const palette = [
+        '#6C5CE7', '#FF7A59', '#22C55E', '#3B82F6',
+        '#F59E0B', '#EC4899', '#14B8A6', '#8B5CF6',
+        '#EF4444', '#06B6D4',
+      ];
+      let h = 0;
+      for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+      return palette[h % palette.length];
+    }
+  </script>
+</body>
+</html>
