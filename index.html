@@ -277,8 +277,8 @@
               </svg>
             </div>
             <div class="min-w-0">
-              <p class="text-xs font-semibold truncate">Daily SOP</p>
-              <p class="text-[10px] text-mute">Operations</p>
+              <p class="text-xs font-semibold truncate">Set up</p>
+              <p class="text-[10px] text-mute">Work flow</p>
             </div>
           </div>
 
@@ -289,8 +289,8 @@
               </svg>
             </div>
             <div class="min-w-0">
-              <p class="text-xs font-semibold truncate">Brand Kit</p>
-              <p class="text-[10px] text-mute">Marketing</p>
+              <p class="text-xs font-semibold truncate">Request</p>
+              <p class="text-[10px] text-mute">Template</p>
             </div>
           </div>
 
@@ -301,8 +301,8 @@
               </svg>
             </div>
             <div class="min-w-0">
-              <p class="text-xs font-semibold truncate">Q4 Report</p>
-              <p class="text-[10px] text-mute">Finance</p>
+              <p class="text-xs font-semibold truncate">Efficiency</p>
+              <p class="text-[10px] text-mute">Report</p>
             </div>
           </div>
 
@@ -317,6 +317,9 @@
        MAIN — Results section
        ============================================================ -->
   <main id="resourcesAnchor" class="max-w-6xl mx-auto px-4 sm:px-8 pb-28">
+
+    <!-- Announcement board (filled by JS — only visible if active announcements exist) -->
+    <section id="announcementBoard" class="hidden mt-2 mb-8 space-y-3"></section>
 
     <!-- Section header -->
     <div class="flex items-baseline justify-between mt-6 mb-6">
@@ -388,10 +391,11 @@
     </header>
 
     <!-- Tabs -->
-    <div class="flex border-b border-line px-2">
-      <button data-tab="links" class="admin-tab flex-1 py-3 text-sm font-semibold border-b-2 border-brand text-brand">Links</button>
-      <button data-tab="categories" class="admin-tab flex-1 py-3 text-sm font-semibold border-b-2 border-transparent text-mute">Categories</button>
-      <button data-tab="users" class="admin-tab flex-1 py-3 text-sm font-semibold border-b-2 border-transparent text-mute">Users</button>
+    <div class="flex border-b border-line px-1 overflow-x-auto">
+      <button data-tab="links" class="admin-tab flex-1 min-w-fit px-3 py-3 text-xs sm:text-sm font-semibold border-b-2 border-brand text-brand whitespace-nowrap">Links</button>
+      <button data-tab="categories" class="admin-tab flex-1 min-w-fit px-3 py-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-mute whitespace-nowrap">Categories</button>
+      <button data-tab="announcements" class="admin-tab flex-1 min-w-fit px-3 py-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-mute whitespace-nowrap">News</button>
+      <button data-tab="users" class="admin-tab flex-1 min-w-fit px-3 py-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-mute whitespace-nowrap">Users</button>
     </div>
 
     <div class="flex-1 overflow-y-auto p-5">
@@ -464,6 +468,76 @@
         <div>
           <p class="text-[11px] uppercase tracking-wider text-slate font-semibold mb-2">All categories</p>
           <ul id="adminCatList" class="space-y-2"></ul>
+        </div>
+      </div>
+
+      <!-- ANNOUNCEMENTS TAB -->
+      <div id="tabAnnouncements" class="hidden space-y-4">
+        <form id="annForm" class="space-y-3 bg-brand-50 border border-line rounded-2xl p-4">
+          <input type="hidden" id="annId" />
+          <div class="flex items-center gap-2 mb-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-brand">
+              <path d="M3 11l18-8v18l-18-8v-2zM11 19v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="text-sm font-bold text-ink">โพสต์ประกาศ</p>
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">หัวข้อ</label>
+            <input id="annTitle" type="text" required maxlength="80" placeholder="เช่น ประชุมทีม วันศุกร์ 14:00"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">รายละเอียด</label>
+            <textarea id="annBody" rows="3" maxlength="500" required placeholder="ข้อความประกาศ — อธิบายเพิ่มเติม ลิงก์ก็ใส่ได้"
+                      class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm resize-none focus:border-brand outline-none"></textarea>
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">ระดับ</label>
+            <div class="grid grid-cols-3 gap-2 mt-1">
+              <label class="cursor-pointer">
+                <input type="radio" name="annLevel" value="info" checked class="peer sr-only" />
+                <div class="px-2 py-2 bg-white border border-line rounded-xl text-xs text-center font-semibold peer-checked:border-brand peer-checked:bg-brand-lt peer-checked:text-brand transition">
+                  ทั่วไป
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="annLevel" value="important" class="peer sr-only" />
+                <div class="px-2 py-2 bg-white border border-line rounded-xl text-xs text-center font-semibold peer-checked:border-warn peer-checked:bg-warn/10 peer-checked:text-warn transition">
+                  สำคัญ
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="annLevel" value="urgent" class="peer sr-only" />
+                <div class="px-2 py-2 bg-white border border-line rounded-xl text-xs text-center font-semibold peer-checked:border-danger peer-checked:bg-danger/10 peer-checked:text-danger transition">
+                  ด่วน
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[11px] uppercase tracking-wider text-slate font-semibold">หมดอายุ (ไม่บังคับ)</label>
+            <input id="annExpiry" type="date"
+                   class="w-full mt-1 px-3 py-2.5 bg-white border border-line rounded-xl text-sm focus:border-brand outline-none" />
+            <p class="text-[11px] text-mute mt-1">เว้นว่างถ้าต้องการแสดงตลอด</p>
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button type="submit" class="flex-1 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-dk transition-colors">
+              <span id="annFormBtnText">โพสต์ประกาศ</span>
+            </button>
+            <button type="button" id="annFormCancel" class="hidden px-4 py-2.5 border border-line rounded-xl text-sm hover:bg-brand-50">
+              ยกเลิก
+            </button>
+          </div>
+        </form>
+
+        <div>
+          <p class="text-[11px] uppercase tracking-wider text-slate font-semibold mb-2">ประกาศทั้งหมด</p>
+          <ul id="adminAnnList" class="space-y-2"></ul>
         </div>
       </div>
 
@@ -673,14 +747,15 @@
        2.  APP STATE
        ------------------------------------------------------------- */
     const state = {
-      user:        null,
-      role:        'viewer',
-      categories:  [],
-      links:       [],
-      users:       [],
-      searchTerm:  '',
-      userSearch:  '',
-      activeFilter:'all',
+      user:          null,
+      role:          'viewer',
+      categories:    [],
+      links:         [],
+      users:         [],
+      announcements: [],
+      searchTerm:    '',
+      userSearch:    '',
+      activeFilter:  'all',
     };
 
     let unsubscribeUsers = null;
@@ -738,7 +813,14 @@
       userCountLabel: $('userCountLabel'),
       adminUserList: $('adminUserList'),
       // Tabs
-      tabLinks: $('tabLinks'), tabCategories: $('tabCategories'), tabUsers: $('tabUsers'),
+      tabLinks: $('tabLinks'), tabCategories: $('tabCategories'),
+      tabUsers: $('tabUsers'), tabAnnouncements: $('tabAnnouncements'),
+      announcementBoard: $('announcementBoard'),
+      annForm: $('annForm'), annId: $('annId'),
+      annTitle: $('annTitle'), annBody: $('annBody'),
+      annExpiry: $('annExpiry'),
+      annFormBtnText: $('annFormBtnText'), annFormCancel: $('annFormCancel'),
+      adminAnnList: $('adminAnnList'),
     };
 
     /* -------------------------------------------------------------
@@ -791,6 +873,7 @@
       } else {
         stopDataListeners();
         els.loading.classList.add('hidden');
+        renderAnnouncementBoard();
       }
     });
 
@@ -913,8 +996,9 @@
        7.  FIRESTORE LIVE LISTENERS — categories + links
             (started AFTER the user signs in — Firestore rules require auth)
        ------------------------------------------------------------- */
-    let unsubscribeCategories = null;
-    let unsubscribeLinks      = null;
+    let unsubscribeCategories    = null;
+    let unsubscribeLinks         = null;
+    let unsubscribeAnnouncements = null;
 
     function startDataListeners() {
       if (unsubscribeCategories) return;  // already started — skip
@@ -945,14 +1029,28 @@
           els.loading.classList.add('hidden');
         }
       );
+
+      unsubscribeAnnouncements = onSnapshot(
+        query(collection(db, 'announcements'), orderBy('createdAt', 'desc')),
+        (snap) => {
+          state.announcements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          console.log('[OPS Hub] announcements loaded:', state.announcements.length);
+          renderAnnouncementBoard();
+          renderAdminAnnouncementList();
+        },
+        (err) => console.error('announcements listener', err)
+      );
     }
 
     function stopDataListeners() {
-      if (unsubscribeCategories) { unsubscribeCategories(); unsubscribeCategories = null; }
-      if (unsubscribeLinks)      { unsubscribeLinks();      unsubscribeLinks = null; }
+      if (unsubscribeCategories)    { unsubscribeCategories();    unsubscribeCategories = null; }
+      if (unsubscribeLinks)         { unsubscribeLinks();         unsubscribeLinks = null; }
+      if (unsubscribeAnnouncements) { unsubscribeAnnouncements(); unsubscribeAnnouncements = null; }
       state.categories = [];
       state.links = [];
+      state.announcements = [];
       render();
+      renderAnnouncementBoard();
     }
 
     /* -------------------------------------------------------------
@@ -1225,6 +1323,7 @@
         const tab = btn.dataset.tab;
         els.tabLinks.classList.toggle('hidden', tab !== 'links');
         els.tabCategories.classList.toggle('hidden', tab !== 'categories');
+        els.tabAnnouncements.classList.toggle('hidden', tab !== 'announcements');
         els.tabUsers.classList.toggle('hidden', tab !== 'users');
       });
     });
@@ -1625,7 +1724,201 @@
     }
 
     /* -------------------------------------------------------------
-       14.  UTILITIES
+       14.  ANNOUNCEMENTS
+       ------------------------------------------------------------- */
+    // Track which announcements the user has dismissed (per browser)
+    function getDismissed() {
+      try { return JSON.parse(localStorage.getItem('opsHubDismissedAnns') || '[]'); }
+      catch { return []; }
+    }
+    function addDismissed(id) {
+      const d = getDismissed();
+      if (!d.includes(id)) d.push(id);
+      localStorage.setItem('opsHubDismissedAnns', JSON.stringify(d.slice(-50)));
+    }
+
+    function isAnnouncementActive(ann) {
+      if (!ann.expiry) return true;
+      const today = new Date().toISOString().split('T')[0];
+      return ann.expiry >= today;
+    }
+
+    function renderAnnouncementBoard() {
+      if (!state.user) {
+        els.announcementBoard.classList.add('hidden');
+        return;
+      }
+      const dismissed = getDismissed();
+      const visible = state.announcements
+        .filter(a => isAnnouncementActive(a))
+        .filter(a => !dismissed.includes(a.id));
+
+      if (visible.length === 0) {
+        els.announcementBoard.classList.add('hidden');
+        els.announcementBoard.innerHTML = '';
+        return;
+      }
+
+      els.announcementBoard.classList.remove('hidden');
+      els.announcementBoard.innerHTML = visible.map(a => renderAnnouncementCard(a)).join('');
+
+      // Bind dismiss buttons
+      els.announcementBoard.querySelectorAll('[data-dismiss-ann]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          addDismissed(btn.dataset.dismissAnn);
+          renderAnnouncementBoard();
+        });
+      });
+    }
+
+    function renderAnnouncementCard(a) {
+      const styles = {
+        info:      { bg: 'bg-brand-lt',     border: 'border-brand/20',  text: 'text-brand',    icon: 'megaphone',  label: 'ทั่วไป' },
+        important: { bg: 'bg-warn/10',      border: 'border-warn/30',   text: 'text-warn',     icon: 'alert',      label: 'สำคัญ' },
+        urgent:    { bg: 'bg-danger/10',    border: 'border-danger/30', text: 'text-danger',   icon: 'urgent',     label: 'ด่วน' },
+      };
+      const s = styles[a.level] || styles.info;
+      const iconSvg = {
+        megaphone: '<path d="M3 11l18-8v18l-18-8v-2zM11 19v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+        alert:     '<path d="M12 9v4M12 17h.01M10.3 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+        urgent:    '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v6M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+      };
+      const date = a.createdAt?.toDate?.()
+        ? a.createdAt.toDate().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+        : '';
+      return `
+        <article class="reveal ${s.bg} border ${s.border} rounded-2xl p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+          <div class="${s.text} shrink-0 mt-0.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              ${iconSvg[s.icon] || iconSvg.megaphone}
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="text-[10px] uppercase tracking-wider font-bold ${s.text}">${s.label}</span>
+              ${date ? `<span class="text-[10px] text-slate">· ${date}</span>` : ''}
+            </div>
+            <p class="font-bold text-sm sm:text-base text-ink leading-snug">${escapeHtml(a.title)}</p>
+            <p class="text-sm text-slate mt-1 leading-relaxed whitespace-pre-wrap">${linkify(escapeHtml(a.body))}</p>
+          </div>
+          <button data-dismiss-ann="${a.id}" aria-label="ปิดประกาศ"
+                  class="shrink-0 w-7 h-7 rounded-lg hover:bg-white/60 flex items-center justify-center transition-colors ${s.text}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </article>`;
+    }
+
+    // Simple URL linkifier (works on already-escaped HTML)
+    function linkify(escapedText) {
+      return escapedText.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline hover:text-brand">${url}</a>`;
+      });
+    }
+
+    /* ---- Admin: announcement CRUD ---- */
+    function renderAdminAnnouncementList() {
+      if (state.role !== 'admin') return;
+      if (!els.adminAnnList) return;
+
+      els.adminAnnList.innerHTML = state.announcements.length === 0
+        ? '<li class="text-xs text-slate py-3 text-center">ยังไม่มีประกาศ</li>'
+        : state.announcements.map(a => {
+            const active = isAnnouncementActive(a);
+            const levelLabel = { info: 'ทั่วไป', important: 'สำคัญ', urgent: 'ด่วน' }[a.level] || 'ทั่วไป';
+            const levelColor = { info: 'text-brand bg-brand-lt', important: 'text-warn bg-warn/10', urgent: 'text-danger bg-danger/10' }[a.level] || 'text-brand bg-brand-lt';
+            return `
+              <li class="p-3 bg-white border border-line rounded-xl">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full font-bold ${levelColor}">${levelLabel}</span>
+                      ${!active ? '<span class="text-[9px] uppercase px-1.5 py-0.5 rounded-full font-bold bg-mist text-slate">หมดอายุ</span>' : ''}
+                    </div>
+                    <p class="text-sm font-semibold truncate">${escapeHtml(a.title)}</p>
+                    <p class="text-xs text-slate clamp-2 mt-0.5">${escapeHtml(a.body)}</p>
+                  </div>
+                  <div class="flex gap-1 shrink-0">
+                    <button data-edit-ann="${a.id}" class="w-7 h-7 rounded-lg hover:bg-brand-50 flex items-center justify-center" aria-label="แก้ไข">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button data-del-ann="${a.id}" class="w-7 h-7 rounded-lg hover:bg-danger/10 flex items-center justify-center text-danger" aria-label="ลบ">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </li>`;
+          }).join('');
+
+      els.adminAnnList.querySelectorAll('[data-edit-ann]').forEach(b =>
+        b.addEventListener('click', () => editAnnouncement(b.dataset.editAnn)));
+      els.adminAnnList.querySelectorAll('[data-del-ann]').forEach(b =>
+        b.addEventListener('click', () => deleteAnnouncement(b.dataset.delAnn)));
+    }
+
+    function editAnnouncement(id) {
+      const a = state.announcements.find(x => x.id === id);
+      if (!a) return;
+      els.annId.value = a.id;
+      els.annTitle.value = a.title || '';
+      els.annBody.value = a.body || '';
+      els.annExpiry.value = a.expiry || '';
+      document.querySelector(`input[name="annLevel"][value="${a.level || 'info'}"]`).checked = true;
+      els.annFormBtnText.textContent = 'บันทึก';
+      els.annFormCancel.classList.remove('hidden');
+      els.annTitle.focus();
+    }
+
+    function resetAnnForm() {
+      els.annForm.reset();
+      els.annId.value = '';
+      document.querySelector('input[name="annLevel"][value="info"]').checked = true;
+      els.annFormBtnText.textContent = 'โพสต์ประกาศ';
+      els.annFormCancel.classList.add('hidden');
+    }
+
+    if (els.annFormCancel) els.annFormCancel.addEventListener('click', resetAnnForm);
+
+    if (els.annForm) els.annForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (state.role !== 'admin') return toast('Admin access required');
+
+      const level = document.querySelector('input[name="annLevel"]:checked')?.value || 'info';
+      const payload = {
+        title:     els.annTitle.value.trim(),
+        body:      els.annBody.value.trim(),
+        level:     level,
+        expiry:    els.annExpiry.value || null,
+        updatedAt: serverTimestamp(),
+      };
+
+      try {
+        if (els.annId.value) {
+          await updateDoc(doc(db, 'announcements', els.annId.value), payload);
+          toast('อัปเดตประกาศแล้ว');
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, 'announcements'), payload);
+          toast('โพสต์ประกาศแล้ว');
+        }
+        resetAnnForm();
+      } catch (err) {
+        console.error(err);
+        toast('Error: ' + err.code);
+      }
+    });
+
+    async function deleteAnnouncement(id) {
+      if (!confirm('ลบประกาศนี้ถาวร?')) return;
+      try {
+        await deleteDoc(doc(db, 'announcements', id));
+        toast('ลบประกาศแล้ว');
+      } catch (err) { toast('Error: ' + err.code); }
+    }
+
+    /* -------------------------------------------------------------
+       15.  UTILITIES
        ------------------------------------------------------------- */
     function getCategoryName(id) {
       const c = state.categories.find(x => x.id === id);
