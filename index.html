@@ -661,7 +661,7 @@
       projectId: "ops-hub-f3cb0",
       storageBucket: "ops-hub-f3cb0.firebasestorage.app",
       messagingSenderId: "395814140562",
-      appId: "1:395814140562:web:4ecf88d3991496b2d1844b"
+      appId: "1:395814140562:web:4ecf88d3991496b2d1844b",
     };
     // ▲▲▲ REPLACE WITH YOUR FIREBASE CONFIG ▲▲▲
 
@@ -764,6 +764,7 @@
           if (userDoc.exists()) {
             // Existing user — load their role
             state.role = userDoc.data().role || 'viewer';
+            console.log('[OPS Hub] Firestore doc found → role=' + state.role + ' uid=' + user.uid);
           } else {
             // Orphan auth account (no Firestore doc) — likely the bootstrap admin
             // before their /users/{uid} doc was created in the Console.
@@ -803,17 +804,16 @@
         $('signOutBtn').addEventListener('click', () => signOut(auth).then(() => toast('Signed out')));
       } else {
         els.authArea.innerHTML = `
-          <button id="signInBtn" class="px-2 py-1.5 text-slate text-sm font-semibold hover:text-ink hidden sm:inline-block">Log in</button>
           <button id="signUpHero" class="px-5 py-2.5 bg-brand text-white rounded-full text-sm font-semibold hover:bg-brand-dk transition-colors">
             Sign in
           </button>`;
-        $('signInBtn').addEventListener('click', openLoginModal);
         $('signUpHero').addEventListener('click', openLoginModal);
       }
     }
 
     function toggleAdminUI() {
       const isAdmin = state.role === 'admin' && state.user;
+      console.log('[OPS Hub] role=' + state.role + ' | uid=' + (state.user && state.user.uid) + ' | isAdmin=' + isAdmin);
       els.adminFab.classList.toggle('hidden', !isAdmin);
       els.navManage.classList.toggle('hidden', !isAdmin);
       if (!isAdmin) closeAdminDrawer();
