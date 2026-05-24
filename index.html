@@ -186,7 +186,7 @@
        HEADER — Ziro-style: logo left, nav center (desktop), auth right
        ============================================================ -->
   <header class="safe-pt sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-line">
-    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-3">
       <!-- Brand -->
       <a href="#" class="flex items-center gap-2.5">
         <!-- Geometric mark — purple + orange like Ziro -->
@@ -200,8 +200,8 @@
         <span class="font-bold text-xl tracking-tight">OPS Hub</span>
       </a>
 
-      <!-- Nav (desktop only) -->
-      <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate">
+      <!-- Nav (desktop only, hides on tablet to save space for auth button) -->
+      <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-slate">
         <a href="#" class="text-ink">Home</a>
         <a href="#resourcesAnchor" class="hover:text-ink transition">Resources</a>
         <a href="#" id="navManage" class="hover:text-ink transition hidden">Manage</a>
@@ -223,10 +223,10 @@
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
 
-    <div class="max-w-6xl mx-auto px-5 sm:px-8 pt-10 sm:pt-16 pb-8 sm:pb-12 grid md:grid-cols-2 gap-8 items-center relative">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 pt-8 sm:pt-16 pb-8 sm:pb-12 grid md:grid-cols-2 gap-8 items-center relative">
       <!-- Left: text + search -->
       <div class="reveal" style="animation-delay: 40ms">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
           Find your team's<br>
           resources through<br>
           <span class="text-brand">OPS Hub</span> easily
@@ -316,13 +316,13 @@
   <!-- ============================================================
        MAIN — Results section
        ============================================================ -->
-  <main id="resourcesAnchor" class="max-w-6xl mx-auto px-5 sm:px-8 pb-28">
+  <main id="resourcesAnchor" class="max-w-6xl mx-auto px-4 sm:px-8 pb-28">
 
     <!-- Section header -->
     <div class="flex items-baseline justify-between mt-6 mb-6">
       <div>
-        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">
-          Showing <span id="resultsCount">0</span> resources
+        <h2 class="text-xl sm:text-3xl font-bold tracking-tight">
+          Showing <span id="resultsCount">0</span> <span id="resultsLabel">items</span>
         </h2>
         <p class="text-sm text-slate mt-1" id="filterLabel">All categories</p>
       </div>
@@ -959,7 +959,10 @@
        8.  RENDER (filters + cards)
        ------------------------------------------------------------- */
     function render() {
-      // Filter chips
+      const term = state.searchTerm.trim().toLowerCase();
+      const isSearching = term.length > 0;
+
+      // ----- FILTER PILLS (always shown) -----
       const pills = [
         { id: 'all', name: 'All' },
         ...state.categories,
@@ -974,13 +977,28 @@
         btn.addEventListener('click', () => {
           state.activeFilter = btn.dataset.filter;
           render();
+          if (btn.dataset.filter !== 'all') {
+            document.getElementById('resourcesAnchor')?.scrollIntoView({ behavior: 'smooth' });
+          }
         });
       });
 
-      // Filter links
-      const term = state.searchTerm.trim().toLowerCase();
-      const filtered = state.links.filter(link => {
-        const inCat = state.activeFilter === 'all' || link.categoryId === state.activeFilter;
+      // ----- DECIDE VIEW MODE -----
+      // 1. Searching → show flat link grid (search across all)
+      // 2. Filter = 'all' AND not searching → show CATEGORY grid
+      // 3. Filter = specific category → show LINKS in that category
+      if (isSearching) {
+        renderLinkResults(filterLinks(term, 'all'), { searchTerm: term });
+      } else if (state.activeFilter === 'all') {
+        renderCategoryGrid();
+      } else {
+        renderLinkResults(filterLinks('', state.activeFilter), { categoryId: state.activeFilter });
+      }
+    }
+
+    function filterLinks(term, categoryId) {
+      return state.links.filter(link => {
+        const inCat = categoryId === 'all' || link.categoryId === categoryId;
         if (!inCat) return false;
         if (!term) return true;
         return (
@@ -990,12 +1008,81 @@
           (getCategoryName(link.categoryId) || '').toLowerCase().includes(term)
         );
       });
+    }
 
+    // ----- VIEW: Category Grid (default view) -----
+    function renderCategoryGrid() {
+      const cats = state.categories;
+
+      els.resultsCount.textContent = cats.length;
+      const rl = document.getElementById('resultsLabel');
+      if (rl) rl.textContent = cats.length === 1 ? 'category' : 'categories';
+      els.filterLabel.textContent = 'Browse by category';
+
+      if (cats.length === 0) {
+        els.results.innerHTML = '';
+        els.empty.classList.remove('hidden');
+        return;
+      }
+      els.empty.classList.add('hidden');
+
+      // Count links per category
+      const linkCountByCat = state.links.reduce((acc, l) => {
+        acc[l.categoryId] = (acc[l.categoryId] || 0) + 1;
+        return acc;
+      }, {});
+
+      els.results.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          ${cats.map((c, i) => renderCategoryCard(c, linkCountByCat[c.id] || 0, i)).join('')}
+        </div>`;
+
+      // Bind category card clicks
+      els.results.querySelectorAll('[data-cat-click]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeFilter = btn.dataset.catClick;
+          render();
+          document.getElementById('resourcesAnchor')?.scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+    }
+
+    function renderCategoryCard(cat, linkCount, i) {
+      const initial = (cat.name || '?').charAt(0).toUpperCase();
+      const color = avatarColor(cat.name || '');
+      return `
+        <button type="button" data-cat-click="${cat.id}"
+                class="card group bg-white border border-line rounded-2xl p-4 sm:p-5 shadow-card reveal text-left flex flex-col items-start gap-3 hover:border-brand"
+                style="animation-delay: ${i * 30}ms">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-white" style="background:${color}">
+            ${initial}
+          </div>
+          <div class="flex-1 min-w-0 w-full">
+            <p class="font-bold text-base sm:text-lg leading-tight group-hover:text-brand transition-colors">${escapeHtml(cat.name)}</p>
+            <p class="text-xs text-slate mt-1">${linkCount} ${linkCount === 1 ? 'link' : 'links'}</p>
+          </div>
+          <span class="flex items-center gap-1 text-xs font-semibold text-brand mt-auto group-hover:gap-1.5 transition-all">
+            View
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>`;
+    }
+
+    // ----- VIEW: Link Grid (after a category clicked, or searching) -----
+    function renderLinkResults(filtered, opts) {
       els.resultsCount.textContent = filtered.length;
-      const activeName = state.activeFilter === 'all' ? 'All categories' : getCategoryName(state.activeFilter);
-      els.filterLabel.textContent = term
-        ? `Filtered by "${term}" in ${activeName}`
-        : activeName;
+      const rl = document.getElementById('resultsLabel');
+      if (rl) rl.textContent = filtered.length === 1 ? 'link' : 'links';
+
+      // Label + breadcrumb
+      if (opts.searchTerm) {
+        els.filterLabel.textContent = `Search results for "${opts.searchTerm}"`;
+      } else if (opts.categoryId) {
+        const catName = getCategoryName(opts.categoryId);
+        els.filterLabel.textContent = catName;
+      }
 
       if (filtered.length === 0) {
         els.results.innerHTML = '';
@@ -1004,11 +1091,30 @@
       }
       els.empty.classList.add('hidden');
 
-      // Render as a flat list of cards — Ziro-style job list
+      // Breadcrumb (only when viewing a category, not when searching)
+      const breadcrumb = opts.categoryId ? `
+        <button id="backToCategories" class="mb-5 inline-flex items-center gap-1.5 text-sm text-slate hover:text-brand font-medium transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          All categories
+        </button>` : '';
+
       els.results.innerHTML = `
-        <div class="space-y-3">
+        ${breadcrumb}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           ${filtered.map((link, i) => renderLinkRow(link, i)).join('')}
         </div>`;
+
+      // Back button → return to category grid
+      const backBtn = document.getElementById('backToCategories');
+      if (backBtn) {
+        backBtn.addEventListener('click', () => {
+          state.activeFilter = 'all';
+          render();
+          document.getElementById('resourcesAnchor')?.scrollIntoView({ behavior: 'smooth' });
+        });
+      }
 
       // Copy buttons
       els.results.querySelectorAll('[data-copy]').forEach(btn => {
@@ -1027,46 +1133,35 @@
       const color = avatarColor(link.title || '');
       return `
         <a href="${escapeAttr(link.url)}" target="_blank" rel="noopener noreferrer"
-           class="card group block bg-white border border-line rounded-2xl p-4 sm:p-5 shadow-card reveal"
-           style="animation-delay: ${i * 35}ms">
-          <div class="flex items-center gap-3 sm:gap-4">
-            <!-- Icon -->
-            <div class="avatar w-12 h-12 sm:w-14 sm:h-14 rounded-2xl text-xl shrink-0" style="background:${color}">
+           class="card group bg-white border border-line rounded-2xl p-4 shadow-card reveal flex flex-col"
+           style="animation-delay: ${i * 25}ms">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="avatar w-11 h-11 rounded-xl text-lg shrink-0" style="background:${color}">
               ${initial}
             </div>
-            <!-- Body -->
-            <div class="flex-1 min-w-0">
-              <p class="font-semibold text-[15px] sm:text-base leading-snug truncate group-hover:text-brand transition-colors">${escapeHtml(link.title)}</p>
-              <p class="text-xs text-slate truncate mt-0.5">${escapeHtml(catName)}</p>
-              ${link.desc ? `<p class="hidden sm:block text-xs text-mute mt-1 clamp-2">${escapeHtml(link.desc)}</p>` : ''}
-            </div>
-            <!-- Right side: host + actions -->
-            <div class="hidden sm:flex flex-col items-end gap-1.5 min-w-[120px]">
-              <p class="text-[11px] text-mute font-mono truncate max-w-[140px]">${escapeHtml(host)}</p>
-              <div class="flex items-center gap-2">
-                <button data-copy="${escapeAttr(link.url)}" aria-label="Copy link"
-                        class="w-8 h-8 rounded-full border border-line hover:bg-brand-50 hover:border-brand flex items-center justify-center transition-colors">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                    <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/>
-                    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/>
-                  </svg>
-                </button>
-                <span class="px-3 py-1.5 bg-brand text-white rounded-full text-xs font-semibold group-hover:bg-brand-dk transition-colors">Open</span>
-              </div>
-            </div>
-            <!-- Mobile actions -->
-            <div class="sm:hidden flex items-center gap-1.5">
-              <button data-copy="${escapeAttr(link.url)}" aria-label="Copy link"
-                      class="w-9 h-9 rounded-full border border-line hover:bg-brand-50 flex items-center justify-center transition-colors">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/>
-                  <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/>
-                </svg>
-              </button>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-brand">
-                <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <button data-copy="${escapeAttr(link.url)}" aria-label="Copy link"
+                    class="w-8 h-8 rounded-lg border border-line hover:bg-brand-50 hover:border-brand flex items-center justify-center transition-colors text-slate hover:text-brand">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/>
               </svg>
-            </div>
+            </button>
+          </div>
+
+          <div class="flex-1 min-w-0 mb-3">
+            <p class="font-semibold text-[15px] leading-snug clamp-2 group-hover:text-brand transition-colors">${escapeHtml(link.title)}</p>
+            <p class="text-xs text-slate truncate mt-1">${escapeHtml(catName)}</p>
+            ${link.desc ? `<p class="text-xs text-mute mt-2 clamp-2 leading-relaxed">${escapeHtml(link.desc)}</p>` : ''}
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-3 border-t border-line">
+            <p class="text-[11px] text-mute font-mono truncate flex-1">${escapeHtml(host)}</p>
+            <span class="flex items-center gap-1 text-xs font-semibold text-brand group-hover:gap-1.5 transition-all">
+              Open
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M7 17L17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
           </div>
         </a>`;
     }
